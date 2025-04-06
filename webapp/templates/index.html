@@ -1,0 +1,184 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>nonceforce</title>
+  <style>
+    body {
+      background-image: url('https://www.kali.org/blog/kali-linux-2020-4-release/images/boot-kali.gif');
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-size:contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: black;
+    }
+    form {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(255, 10, 10, 0.496);
+      margin: auto;
+      max-width: 600px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    #result-box {
+      color: #0f0;
+      border-radius: 8px;
+      display: none;
+      background-color: black;
+    }
+
+    #larget {
+      font-size: 2.5rem;
+      color: #ff0000;
+      text-shadow: 2px 2px 4px white;
+    }
+    #mortal{
+      color:red;
+      text-shadow: 0.5px 0.5px 1px white;
+    }
+    #ohio {
+      background: rgba(255, 255, 255, 0.507);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(236, 21, 21, 0.25);
+      margin: auto;
+      max-width: 500px;
+    }
+  </style>
+</head>
+<body>
+  <center>
+    <h1 id="larget">☠️NONCEFORCE☠️</h1>
+    <h5 id="mortal">By k3yb0ard🧑‍💻</h5>
+    <hr>
+    <p style="color: rgb(214, 56, 56); font-size: 1.1rem; max-width: 700px; margin-bottom: 1.5rem;">
+      This tool allows you to perform a brute-force attack on DSA signatures by guessing the value of <code>k</code> within a specified range. Provide the required DSA parameters and the hashed message to compute the nonce value k and hence the secret private key if a valid k is found.
+    </p>
+  </center>
+
+
+  <form id="bruteForm">
+    <h3>Enter the Known Parameters</h3>
+    <label for="p">p</label><br>
+      <input type="text" name="p" placeholder="p" required>
+    <label for="q">q</label><br>
+      <input type="text" name="q" placeholder="q" required>
+    <label for="g">g</label><br>
+      <input type="text" name="g" placeholder="g" required>
+    <label for="y">y</label><br>
+      <input type="text" name="r" placeholder="r" required>
+    <label for="s">s</label><br>
+      <input type="text" name="s" placeholder="s" required>
+    <label for="hashed_message">Hash of the message</label>
+      <input type="text" name="hashed_message" required><br>
+    <label for="k_min">k_min (From what value should I start searching for k)</label>
+      <input type="text" name="k_min" placeholder="k min" required><br>
+    <label for="k_max">k_max (Upto what value k has to be searched)</label>
+      <input type="text" name="k_max" placeholder="k max" required>
+    <br><br>
+      <button type="submit" style="color: #ff0000;">Brute Force 🔍</button>
+  </form>
+  
+<br><br>
+  <center><div id="result-box" style="text-align: left; background-color:white; max-width:700px; margin: auto; padding: 10px; border-radius: 8px; font-family: monospace;"></div></center>
+  
+  <script>
+    document.querySelector("form").addEventListener("submit", async function(event) {
+        event.preventDefault();
+  
+        const form = this;
+        const formData = new FormData(form);
+        const jsonData = {};
+        console.log("Sending data:", jsonData);
+        formData.forEach((value, key) => {
+            jsonData[key] = value;
+        });
+  
+        const submitBtn = form.querySelector("button[type='submit']");
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = "Please wait... Searching for nonce value (k)... 🔍";
+        submitBtn.style.backgroundColor = "#ff0000";
+        submitBtn.style.color = "white";
+        submitBtn.disabled = true;
+  
+        document.getElementById("result-box").style.display = "none";
+  
+        try {
+            const res = await fetch("/bruteforce", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(jsonData)
+            });
+  
+            const contentType = res.headers.get("content-type");
+            if (!contentType.includes("application/json")) {
+                const text = await res.text();
+                throw new Error("Unexpected response:\n" + text);
+            }
+  
+            const data = await res.json();
+  
+            const resultBox = document.getElementById("result-box");
+  
+            if (data.status === "success") {
+                resultBox.innerHTML = `
+                    <div style="color: green; background-color: black;">
+                        ✅ <strong>k:</strong> ${data.k}<br>
+                        🔑 <strong>Private Key:</strong><br>
+                        <code style="font-size: 1rem;">${data.priv_key}</code>
+                    </div>`;
+            } else {
+                resultBox.innerHTML = `<div style="color: red;">❌ ${data.message}</div>`;
+            }
+  
+            resultBox.style.display = "block";
+        } catch (err) {
+            document.getElementById("result-box").innerHTML = `<div style="color: red;">❌ Error: ${err.message}</div>`;
+            document.getElementById("result-box").style.display = "block";
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+  </script>
+  
+</body>
+<hr>
+<footer id="ohio" style="text-align: center; padding: 1rem; color: white; background-color : rgba(194, 185, 185, 0.621);">
+  <p>k3yb0ard | Ashmil-Kurikkal</p>
+  <div style="margin-top: 10px;">
+    <a href="https://github.com/Ashmil-Kurikkal" target="_blank" style="margin: 0 10px;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" alt="GitHub" width="30" />
+    </a>
+    <a href="https://linkedin.com/in/ashmil-kurikkal" target="_blank" style="margin: 0 10px;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" alt="LinkedIn" width="30" />
+    </a>
+    <a href="https://instagram.com/ashmilkurikkal" target="_blank" style="margin: 0 10px;">
+      <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" width="30" style="border-radius: 6px;" />
+    </a>
+  </div>
+</footer>
+</html>
